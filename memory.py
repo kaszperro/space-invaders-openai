@@ -48,6 +48,10 @@ class Memory:
             'done': done
         })
 
+    def clear(self):
+        self.frames = [self.get_empty_frame() for _ in range(self.history_images)]
+        self.buffer.clear()
+
     def __len__(self):
         return len(self.buffer)
 

@@ -27,6 +27,8 @@ def train_step(model, eval_net, data_loader, gamma, loss_fn, optimizer):
 
 
 def train_epoch(env, memory, epsilon, model, eval_net, gamma, loss_fn, optimizer, batch_size=64):
+    memory.clear()
+
     frame = env.reset()
 
     it = 0
@@ -45,9 +47,6 @@ def train_epoch(env, memory, epsilon, model, eval_net, gamma, loss_fn, optimizer
 
         next_frame, reward, done, info = env.step(action)
         cumulative_reward += reward
-
-        if done:
-            env.reset()
 
         memory.add_experience(frame, action, reward, next_frame, done)
         frame = next_frame
