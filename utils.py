@@ -1,3 +1,4 @@
+import imageio
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -27,3 +28,7 @@ def show_images(images, cols=1, titles=None):
         a.set_title(title)
     fig.set_size_inches(np.array(fig.get_size_inches()) * n_images)
     plt.show()
+
+
+def make_gif(frames, save_path):
+    imageio.mimsave(save_path, frames, format='GIF', duration=0.03)

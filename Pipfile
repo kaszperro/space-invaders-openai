@@ -9,6 +9,8 @@ verify_ssl = true
 gym = {extras = ["atari"],version = "*"}
 torch = "*"
 scikit-image = "*"
+pillow = "*"
+torchvision = "*"
 
 [requires]
 python_version = "3.8"
