@@ -6,7 +6,7 @@ from pathlib import Path
 import gym
 import torch
 from torch.nn import MSELoss
-from torch.optim import Adam
+from torch.optim import RMSprop
 from torch.utils.data import DataLoader
 
 from memory import Memory
@@ -54,7 +54,9 @@ def play_episode(model, env, memory, save_path):
     return cumulative_reward
 
 
-def train_whole(env, memory, epsilon, model,
+def train_whole(env, memory, epsilon_start,
+                epsilon_end,
+                epsilon_reach_end_steps, model,
                 eval_net, gamma,
                 loss_fn, optimizer,
                 num_burn_in,
@@ -73,8 +75,11 @@ def train_whole(env, memory, epsilon, model,
     frame = env.reset()
     cumulative_reward = 0
     start_time = time.time()
+
+    eps_step = (epsilon_start - epsilon_end) / epsilon_reach_end_steps
+    print(eps_step)
     for idx in range(1, num_iterations + 1):
-        if idx < num_burn_in or random.uniform(0, 1) < epsilon:
+        if idx < num_burn_in or random.uniform(0, 1) < epsilon_start:
             action = torch.tensor(env.action_space.sample(), dtype=torch.long)
         else:
             with torch.no_grad():
@@ -111,21 +116,26 @@ def train_whole(env, memory, epsilon, model,
             torch.save(model.state_dict(), Path(my_save_root, 'model.pth'))
             torch.save(eval_net.state_dict(), Path(my_save_root, 'eval_model.pth'))
 
+        if idx > num_burn_in:
+            epsilon_start -= eps_step
+
 
 def main():
     memory_size = int(1e5)
-    history_images = 2
+    history_images = 3
     batch_size = 64
-    epsilon = 0.1
+    epsilon_start = 1.0
+    epsilon_end = 0.05
+    epsilon_reach_end_steps = 5000
     gamma = 0.95
-    lr = 1e-4
-    train_freq = 2
+    lr = 15e-4
+    train_freq = 3
     target_update_freq = 100
-    num_burn_in = 1e3  # int(5e4)
+    num_burn_in = 3e3  # int(5e4)
     num_iterations = int(3e4)
     play_freq = 500
     model_save_freq = 400
-    frame_shape = (84, 84)
+    frame_shape = (128, 84)
 
     gif_save_root = Path('gifs')
     gif_save_root.mkdir(exist_ok=True, parents=True)
@@ -136,6 +146,7 @@ def main():
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print(device)
     env = gym.make("SpaceInvaders-v0")
+    # print(env.observation_space.shape)
     # frame_shape = env.observation_space.shape
 
     memory = Memory(memory_size, history_images, frame_shape, device=device)
@@ -145,12 +156,14 @@ def main():
     #     model.half()
     eval_net = copy.deepcopy(model)
     loss_fn = MSELoss()
-    optimizer = Adam(params=model.parameters(), lr=lr)
+    optimizer = RMSprop(params=model.parameters(), lr=lr)  # Adam(params=model.parameters(), lr=lr)
 
     train_whole(
         env,
         memory,
-        epsilon,
+        epsilon_start,
+        epsilon_end,
+        epsilon_reach_end_steps,
         model,
         eval_net,
         gamma,

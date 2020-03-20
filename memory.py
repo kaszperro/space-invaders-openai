@@ -1,5 +1,6 @@
 from collections import deque
 
+import matplotlib.pyplot as plt
 import torch
 from torchvision import transforms
 
